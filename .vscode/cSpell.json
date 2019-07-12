@@ -1,0 +1,28 @@
+{
+    "ignorePaths": [
+        ".git/*",
+        ".vscode/*"
+    ],
+    "language": "en",
+    "dictionaries": [
+        "powershell"
+    ],
+    "words": [
+        "markdownlint",
+        "Codecov",
+        "HQRM",
+        "GUIDs",
+        "unstaged",
+        "PSSA",
+        "Dism",
+        "vors",
+        "subfolders",
+        "PSPKI",
+        "gitignore",
+        "Nuget"
+    ],
+    "ignoreRegExpList": [
+        "AppVeyor",
+        "opencode@microsoft.com"
+    ]
+}

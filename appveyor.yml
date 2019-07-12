@@ -1,0 +1,27 @@
+#---------------------------------#
+#      environment configuration  #
+#---------------------------------#
+version: 1.0.{build}.0
+
+#---------------------------------#
+#      build configuration        #
+#---------------------------------#
+
+build: false
+
+#---------------------------------#
+#      test configuration         #
+#---------------------------------#
+
+test_script:
+    - ps: |
+        Invoke-Pester
+
+#---------------------------------#
+#      deployment configuration   #
+#---------------------------------#
+
+# scripts to run before deployment
+deploy_script:
+  - ps: |
+      Invoke-AppveyorAfterTestTask
