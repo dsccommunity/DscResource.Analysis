@@ -288,7 +288,7 @@ function Get-DscResourceModuleInformation
     return [PSCustomObject] @{
         Name = $name
         RepositoryUri = $RepositoryUri
-        $Branch = $Branch
+        Branch = $Branch
         ChangeLog = (Test-RepositoryFileExists -Path 'CHANGELOG.md' @PSBoundParameters)
         CodeOfConduct = (Test-RepositoryFileExists -Path 'CODE_OF_CONDUCT.md' @PSBoundParameters)
         MarkDownLint = (Test-RepositoryFileExists -Path '.markdownlint.json' @PSBoundParameters)
