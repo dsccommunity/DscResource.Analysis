@@ -17,31 +17,74 @@ to one or more DSC Resource Kit repositories.
 
 | Repository | Maintainer(s) |
 | ---------- | ------------- |
-| [ActiveDirectoryCSDsc](https://github.com/PowerShell/ActiveDirectoryCSDsc) | Daniel Scott-Raynsford ([@PlagueHO](https://github.com/PlagueHO)) <br/> Jason Ryberg ([@devopsjesus](https://github.com/devopsjesus)) |
 | [SharePointDsc](https://github.com/PowerShell/SharePointDsc) | Yorick Kuijs ([@ykuijs](https://github.com/YKuijs)) <br/> Nik Charlebois ([@NikCharlebois](https://github.com/NikCharlebois)) |
-| [SqlServerDsc](https://github.com/PowerShell/SqlServerDsc) | Johan Ljunggren ([@johlju](https://github.com/johlju)) |
-| [xActiveDirectory](https://github.com/PowerShell/xActiveDirectory) | Johan Ljunggren ([@johlju](https://github.com/johlju)) <br/> Jan-Hendrik Peters ([@nyanhp](https://github.com/nyanhp)) <br/> Jason Ryberg ([@devopsjesus](https://github.com/devopsjesus)) <br/> Ryan Christman ([rchristman89](https://github.com/rchristman89)) |
 | xDefender | DEPRECATED - Replaced by [WindowsDefenderDsc](https://www.powershellgallery.com/packages/WindowsDefenderDsc). Note: WindowsDefenderDsc is not part of DSC Resource Kit. |
-| xDisk | DEPRECATED - Replaced by [StorageDsc](https://github.com/PowerShell/StorageDsc) |
-| [xPendingReboot](https://github.com/PowerShell/xPendingReboot) | Brian Wilhite ([@bcwilhite](https://github.com/bcwilhite)) <br/> Nehru Ali ([@nehrua](https://github.com/nehrua)) |
 | [xWebDeploy](https://github.com/PowerShell/xWebDeploy) | --- |
-| [xWinEventLog](https://github.com/PowerShell/xWinEventLog) | DEPRECATED - Migrated to [ComputerManagementDsc](https://github.com/PowerShell/ComputerManagementDsc) |
 '@
-            Context 'When string contains CRLF as new line' {
-                BeforeAll {
 
+            Context 'When pulling maintainers list from DSC Resource kit' {
+                BeforeAll {
+                    Mock -CommandName Invoke-WebRequest -MockWith {
+                        @{ Content = $script:maintainersMd }
+                    }
                 }
 
-                It 'Should return the correct array of strings' {
-                    $getStatementBlockAsRowsParameters = @{
-                        StatementBlock = "First line`r`nSecond line"
+                $script:repositories = Get-DscRepositoriesFromResourceKitMaintainers
+
+                It 'Should return the expected list of repositories' {
+                    $script:repositories.Count | Should -BeExactly 3
+                    $script:repositories[0].Name | Should -BeExactly 'SharePointDsc'
+                    $script:repositories[0].Uri | Should -BeExactly 'https://github.com/PowerShell/SharePointDsc'
+                    $script:repositories[0].Maintainers[0] | Should -BeExactly 'ykuijs'
+                    $script:repositories[0].Maintainers[1] | Should -BeExactly 'NikCharlebois'
+                    $script:repositories[1].Name | Should -BeExactly 'xDefender'
+                    $script:repositories[1].Uri | Should -BeNullOrEmpty
+                    $script:repositories[1].Maintainers | Should -BeNullOrEmpty
+                    $script:repositories[2].Name | Should -BeExactly 'xWebDeploy'
+                    $script:repositories[2].Uri | Should -BeExactly 'https://github.com/PowerShell/xWebDeploy'
+                    $script:repositories[2].Maintainers | Should -BeNullOrEmpty
+                }
+            }
+        }
+
+        Describe 'Get-DscResourceModuleMetaTestOptIn' {
+            $script:metaTestOptInContent = @'
+[
+    "Common Tests - Validate Markdown Files",
+    "Common Tests - Validate Example Files",
+    "Common Tests - Validate Module Files",
+    "Common Tests - Validate Script Files",
+    "Common Tests - Required Script Analyzer Rules"
+]
+'@
+
+            Context 'When the .MetaTestOptIn.json file is found in the repository' {
+                BeforeAll {
+                    Mock -CommandName Invoke-WebRequest -MockWith {
+                        @{ Content = $script:metaTestOptInContent }
                     }
+                }
 
-                    $getStatementBlockAsRowsResult = `
-                        Get-StatementBlockAsRows @getStatementBlockAsRowsParameters
+                $script:metaTestOptIn = Get-DscResourceModuleMetaTestOptIn
 
-                    $getStatementBlockAsRowsResult[0] | Should -Be $expectedReturnValue1
-                    $getStatementBlockAsRowsResult[1] | Should -Be $expectedReturnValue2
+                It 'Should return the object with metaTestOptIn properties' {
+                    $script:metaTestOptIn | Should -Contain 'Common Tests - Validate Markdown Files'
+                    $script:metaTestOptIn | Should -Contain 'Common Tests - Validate Example Files'
+                    $script:metaTestOptIn | Should -Contain 'Common Tests - Validate Module Files'
+                    $script:metaTestOptIn | Should -Contain 'Common Tests - Validate Script Files'
+                    $script:metaTestOptIn | Should -Contain 'Common Tests - Required Script Analyzer Rules'
+                }
+            }
+
+            Context 'When the .MetaTestOptIn.json file is not found in the repository' {
+                BeforeAll {
+                    Mock -CommandName Invoke-WebRequest -MockWith { Throw '404' }
+                }
+
+                $script:metaTestOptIn = Get-DscResourceModuleMetaTestOptIn
+
+                It 'Should return null' {
+                    $script:metaTestOptIn | Should -BeNullOrEmpty
                 }
             }
         }
