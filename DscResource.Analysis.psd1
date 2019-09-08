@@ -1,6 +1,9 @@
 @{
+    # Script module or binary module file associated with this manifest.
+    RootModule = 'DscResource.Analysis.psm1'
+
     # Version number of this module.
-    moduleVersion     = '1.0.0.0'
+    ModuleVersion     = '1.0.0.0'
 
     # ID used to uniquely identify this module
     GUID              = 'c9b769c1-0aa4-47c5-bdfc-d617ff7f2ae2'
@@ -18,7 +21,7 @@
     Description       = 'Module to perform analysis on PowerShell DSC Resource repositories to report on health and other properties.'
 
     # Minimum version of the Windows PowerShell engine required by this module
-    PowerShellVersion = '4.0'
+    PowerShellVersion = '5.1'
 
     # Name of the Windows PowerShell host required by this module
     # PowerShellHostName = ''
@@ -58,7 +61,8 @@
         'Get-DscResourceModulesFromResourceKitMaintainers',
         'Get-DscResourceModuleMetaTestOptIn',
         'Get-DscResourceModuleInformation',
-        'Get-DscResourceKitInformation'
+        'Get-DscResourceKitInformation',
+        'Start-DscResourceKitMetaTest'
     )
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

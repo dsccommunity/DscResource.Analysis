@@ -319,3 +319,151 @@ function Get-DscResourceKitInformation
 
     return $resourceInformation
 }
+
+<#
+    .SYNOPSIS
+        Execute Meta Tests on DSC Resource Kit modules.
+
+    .DESCRIPTION
+        Clone one or more DSC Resource Kit modules to a working folder
+        the clone a version of the DSCResource.Tests repository to each
+        and execute the Meta.Tests on it.
+
+    .PARAMETER RepositoryUri
+        An array of GitHub Repository URIs containing DSC Resource Kit
+        modules to run meta tests on.
+
+    .PARAMETER Repository
+        An array of Repository objects containing DSC Resource Kit
+        modules to run meta tests on. The repository objects are returned
+        by the Get-DscResourceKitInformation and Get-DscResourceModuleInformation
+        functions.
+
+    .PARAMETER ClonePath
+        The working path that the DSC Resource Kit module repositories will
+        be downloaded to during the test process. Defaults to the $ENV:Temp
+        folder.
+
+    .PARAMETER TestFrameworkUri
+        The GitHub Repository URI of the DSCResource.Tests repository.
+        Defaults to 'https://github.com/PowerShell/DscResource.Tests'.
+
+    .PARAMETER TestFrameworkBranch
+        The Git branch to use in the DSCResource.Tests repository.
+        Defaults to 'master'.
+
+    .PARAMETER TestName
+        The TestName of the Meta Test to execute. If not specified,
+        all tests in the Meta.Tests.ps1 will be executed.
+
+    .EXAMPLE
+        Get-DscResourceKitInformation |
+            Where-Object -FilterScript { $_.MetaTestOptIn -contains 'Common Tests - Custom Script Analyzer Rules' } |
+            Start-DscResourceKitMetaTest `
+                -TestFrameworkUri 'https://github.com/SSvilen/DscResource.Tests' `
+                -TestFrameworkBranch 'KeywordsCheck' `
+                -TestName 'Common Tests - PS Script Analyzer on Resource Files'
+
+        Execute the 'Common Tests - PS Script Analyzer on Resource Files' Meta
+        Tests on all the DSC Resource modules in the DSC Resource Kit that have
+        been opted in to 'Common Tests - Custom Script Analyzer Rules'.
+#>
+function Start-DscResourceKitMetaTest
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Position = 0, ParameterSetName = 'Uri', ValueFromPipeline = $true)]
+        [System.String[]]
+        $RepositoryUri,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'Repository', ValueFromPipeline = $true)]
+        [System.Object[]]
+        $Repository,
+
+        [Parameter()]
+        [System.String]
+        [ValidateScript({ Test-Path -Path $_ })]
+        $ClonePath = $ENV:Temp,
+
+        [Parameter()]
+        [System.String]
+        $TestFrameworkUri = 'https://github.com/PowerShell/DscResource.Tests',
+
+        [Parameter()]
+        [System.String]
+        $TestFrameworkBranch = 'master',
+
+        [Parameter()]
+        [System.String]
+        $TestName
+    )
+
+    begin
+    {
+        $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+
+        if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
+        {
+            throw 'Meta tests need to be run as local administrator.'
+        }
+    }
+
+    process
+    {
+        if ($PSCmdlet.ParameterSetName -eq 'Repository')
+        {
+            $RepositoryUri = $Repository.RepositoryUri
+        }
+
+        foreach ($currentRepositoryUri in $RepositoryUri)
+        {
+            $repositoryName = Split-Path -Path $currentRepositoryUri -Leaf
+            $repositoryPath = Join-Path -Path $ClonePath -ChildPath $repositoryName
+
+            Write-Verbose -Message ('Cloning DSC Resource repository {0} to {1}.' -f $currentRepositoryUri, $repositoryPath)
+
+            $gitCloneParameters = @(
+                'clone'
+                ('{0}.git' -f $currentRepositoryUri)
+                $repositoryPath
+            )
+
+            & git @gitCloneParameters
+
+            $repositoryTestFrameworkPath = Join-Path -Path $repositoryPath -ChildPath 'DSCResource.Tests'
+
+            Write-Verbose -Message ('Cloning DSCResource.Test repository {0} to {1}.' -f $currentRepositoryUri, $repositoryTestFrameworkPath)
+
+            $gitCloneParameters = @(
+                'clone'
+                ('{0}.git' -f $TestFrameworkUri)
+                $repositoryTestFrameworkPath
+                '--branch'
+                $TestFrameworkBranch
+            )
+
+            & git @gitCloneParameters
+
+            Write-Verbose -Message ('Invoking Meta.Tests on {0}.' -f $repositoryTestFrameworkPath)
+
+            $invokePesterParameters = @{
+                Script = (Join-Path -Path $repositoryTestFrameworkPath -ChildPath 'Meta.Tests.ps1')
+                Show = @('Failed','Summary')
+            }
+
+            if ($PSBoundParameters.ContainsKey('TestName'))
+            {
+                $invokePesterParameters += @{
+                    TestName = $TestName
+                }
+            }
+
+            Invoke-Pester @invokePesterParameters
+        }
+    }
+
+    end
+    {
+    }
+}
