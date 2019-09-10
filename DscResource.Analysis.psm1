@@ -367,10 +367,6 @@ function Get-DscResourceKitInformation
         Execute the 'Common Tests - PS Script Analyzer on Resource Files' Meta
         Tests on all the DSC Resource modules in the DSC Resource Kit that have
         been opted in to 'Common Tests - Custom Script Analyzer Rules'.
-
-    .NOTES
-        Thanks to Johan Ljunggren (https://github.com/johlju) for the original
-        code: https://gist.github.com/johlju/411dcea4703d2b6e47230661e1d00bad
 #>
 function Start-DscResourceKitMetaTest
 {
